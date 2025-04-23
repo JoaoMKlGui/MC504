@@ -8,8 +8,8 @@
 
 #define NUM_SAVAGES 5
 #define POT_CAPACITY 3
-#define GRID_WIDTH 50
-#define GRID_HEIGHT 31
+#define GRID_WIDTH 30
+#define GRID_HEIGHT 12
 #define REFRESH_RATE 0.5  // Faster refresh rate
 
 typedef enum {
