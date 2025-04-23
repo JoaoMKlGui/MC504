@@ -98,8 +98,8 @@ void print_grid() {
     grid[cook_status.x][cook_status.y] = 'C';
     if (cook_status.is_sleeping) {
         grid[cook_status.x-1][cook_status.y] = 'z';
-        grid[cook_status.x-2][cook_status.y] = 'z';
-        grid[cook_status.x-3][cook_status.y] = 'z';
+        grid[cook_status.x-1][cook_status.y+1] = 'z';
+        grid[cook_status.x-1][cook_status.y+2] = 'z';
     }
     pthread_mutex_unlock(&cook_status.mutex);
 
@@ -213,7 +213,7 @@ void *savage(void *arg) {
         sem_post(&pot_access);
 
         end_cycle:
-        usleep(2000000);
+        usleep(15000000);
     }
     return NULL;
 }
