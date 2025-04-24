@@ -36,18 +36,6 @@ A interface em modo texto foi projetada para facilitar a compreensão visual da 
 
 ---
 
-## Parâmetros Personalizáveis
-
-Para facilitar testes e simulações com diferentes cenários, o código permite a personalização de parâmetros por meio de constantes definidas no início do arquivo. É possível alterar:
-
-- A quantidade de selvagens (número de threads consumidoras)
-- A capacidade do caldeirão (número máximo de porções)
-- O intervalo de tempo entre atualizações da interface (tempo de animação e simulação)
-
-Essas alterações não requerem mudanças na lógica do programa e permitem analisar o comportamento do sistema sob diferentes condições de carga e concorrência.
-
----
-
 ## Estrutura do Código
 
 A aplicação foi modularizada em funções específicas para facilitar a leitura, manutenção e expansão do código. A seguir, um resumo das principais funções que compõem o sistema:
@@ -72,14 +60,6 @@ O projeto foi desenvolvido em linguagem *C*, utilizando as seguintes bibliotecas
 - time.h — Manipulação de tempo e geração de delays personalizados.
 
 Todo o desenvolvimento e testes foram realizados em um ambiente *Linux*, aproveitando o suporte robusto a programação concorrente com pthreads e semáforos POSIX.
-
----
-
-## Destaques do Projeto
-
-- *Visualização animada em ASCII*: Permite acompanhar em tempo real a movimentação dos selvagens, o estado do caldeirão e a atividade do cozinheiro.
-- *Organização do código*: As funções são bem segmentadas e a lógica de sincronização está clara e encapsulada.
-- *Estabilidade na execução*: O projeto foi cuidadosamente testado para evitar condições de corrida, deadlocks e starvation, garantindo um comportamento previsível e correto mesmo sob diferentes cenários de carga.
 
 ---
 
