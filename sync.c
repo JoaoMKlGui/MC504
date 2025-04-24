@@ -10,7 +10,7 @@
 #define POT_CAPACITY 3
 #define GRID_WIDTH 30
 #define GRID_HEIGHT 12
-#define REFRESH_RATE 0.5  // Faster refresh rate
+#define REFRESH_RATE 0.5
 
 typedef enum {
     IN_TRIBE,
@@ -45,6 +45,10 @@ sem_t eating_mutex;
 sem_t pot_refilled;
 sem_t pot_access;
 
+pthread_mutex_t start_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t start_cond = PTHREAD_COND_INITIALIZER;
+int start_flag = 0;
+
 void clear_screen() {
     printf("\033[2J\033[H");
 }
@@ -55,7 +59,7 @@ void init_positions() {
         savages[i].y = 2 + i * 4;
         savages[i].dest_x = savages[i].x;
         savages[i].dest_y = savages[i].y;
-        savages[i].state = FULL;
+        savages[i].state = IN_TRIBE;
         pthread_mutex_init(&savages[i].mutex, NULL);
     }
 }
@@ -85,11 +89,11 @@ void print_grid() {
 
     for (int i = 0; i < GRID_HEIGHT; i++) {
         grid[i][0] = '#';
-        grid[i][GRID_WIDTH-1] = '#';
+        grid[i][GRID_WIDTH - 1] = '#';
     }
     for (int i = 0; i < GRID_WIDTH; i++) {
         grid[0][i] = '#';
-        grid[GRID_HEIGHT-1][i] = '#';
+        grid[GRID_HEIGHT - 1][i] = '#';
     }
 
     grid[pot_x][pot_y] = 'P';
@@ -97,9 +101,9 @@ void print_grid() {
     pthread_mutex_lock(&cook_status.mutex);
     grid[cook_status.x][cook_status.y] = 'C';
     if (cook_status.is_sleeping) {
-        grid[cook_status.x-1][cook_status.y] = 'z';
-        grid[cook_status.x-1][cook_status.y+1] = 'z';
-        grid[cook_status.x-1][cook_status.y+2] = 'z';
+        grid[cook_status.x - 1][cook_status.y] = 'z';
+        grid[cook_status.x - 1][cook_status.y + 1] = 'z';
+        grid[cook_status.x - 1][cook_status.y + 2] = 'z';
     }
     pthread_mutex_unlock(&cook_status.mutex);
 
@@ -108,10 +112,11 @@ void print_grid() {
         char c = '1' + i;
         grid[savages[i].x][savages[i].y] = c;
         if (savages[i].state == FULL) {
-            grid[savages[i].x+1][savages[i].y] = 'x';
+            grid[savages[i].x + 1][savages[i].y] = 'x';
         }
         pthread_mutex_unlock(&savages[i].mutex);
     }
+
     for (int i = 0; i < GRID_HEIGHT; i++) {
         for (int j = 0; j < GRID_WIDTH; j++) {
             putchar(grid[i][j]);
@@ -120,6 +125,7 @@ void print_grid() {
     }
 
     printf("\nServings: %d | Cook: %s\n", servings, cook_status.is_sleeping ? "SLEEPING" : "AWAKE");
+    printf("\nLEGEND:\n1 to 5 - SAVAGES\nP - POT\nC - COOK\nX - SAVAGE IS FULL\n");
     fflush(stdout);
 }
 
@@ -137,22 +143,28 @@ void *status_printer(void *arg) {
 
 void *savage(void *arg) {
     int id = *(int *)arg;
+
+    pthread_mutex_lock(&start_mutex);
+    while (!start_flag) {
+        pthread_cond_wait(&start_cond, &start_mutex);
+    }
+    pthread_mutex_unlock(&start_mutex);
+
     struct timespec ts;
 
     while (1) {
+
         pthread_mutex_lock(&savages[id].mutex);
-        if (savages[id].state == FULL) {
-            savages[id].state = IN_TRIBE;
-            pthread_mutex_unlock(&savages[id].mutex);
-            usleep((rand() % 500000) + 100000);
-        } else {
+        if (savages[id].state != IN_TRIBE) {
             pthread_mutex_unlock(&savages[id].mutex);
             usleep(100000);
             continue;
         }
+        pthread_mutex_unlock(&savages[id].mutex);
 
         clock_gettime(CLOCK_REALTIME, &ts);
         ts.tv_sec += 1;
+
         while (sem_timedwait(&pot_access, &ts) == -1) {
             pthread_mutex_lock(&savages[id].mutex);
             if (savages[id].state != IN_TRIBE) {
@@ -213,7 +225,11 @@ void *savage(void *arg) {
         sem_post(&pot_access);
 
         end_cycle:
-        usleep(15000000);
+        usleep(10000000);
+
+        pthread_mutex_lock(&savages[id].mutex);
+        savages[id].state = IN_TRIBE;
+        pthread_mutex_unlock(&savages[id].mutex);
     }
     return NULL;
 }
@@ -235,6 +251,7 @@ void *cook_thread(void *arg) {
             usleep(100000);
         }
         pthread_mutex_unlock(&cook_status.mutex);
+
         usleep(1000000);
         sem_wait(&pot_mutex);
         servings = POT_CAPACITY;
@@ -263,7 +280,6 @@ int main() {
     pthread_t savage_threads[NUM_SAVAGES];
     pthread_t cook_thr, status_thread;
     int ids[NUM_SAVAGES];
-    srand(time(NULL));
 
     init_positions();
     sem_init(&pot_mutex, 0, 1);
@@ -279,6 +295,12 @@ int main() {
         ids[i] = i;
         pthread_create(&savage_threads[i], NULL, savage, &ids[i]);
     }
+
+    sleep(1);
+    pthread_mutex_lock(&start_mutex);
+    start_flag = 1;
+    pthread_cond_broadcast(&start_cond);
+    pthread_mutex_unlock(&start_mutex);
 
     for (int i = 0; i < NUM_SAVAGES; i++) {
         pthread_join(savage_threads[i], NULL);
@@ -296,6 +318,8 @@ int main() {
     sem_destroy(&eating_mutex);
     sem_destroy(&pot_refilled);
     sem_destroy(&pot_access);
+    pthread_mutex_destroy(&start_mutex);
+    pthread_cond_destroy(&start_cond);
 
     return 0;
 }
