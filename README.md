@@ -45,3 +45,48 @@ Para facilitar testes e simulações com diferentes cenários, o código permite
 - O intervalo de tempo entre atualizações da interface (tempo de animação e simulação)
 
 Essas alterações não requerem mudanças na lógica do programa e permitem analisar o comportamento do sistema sob diferentes condições de carga e concorrência.
+
+---
+
+## Estrutura do Código
+
+A aplicação foi modularizada em funções específicas para facilitar a leitura, manutenção e expansão do código. A seguir, um resumo das principais funções que compõem o sistema:
+
+- *main*: É o ponto de entrada da aplicação. Inicializa todas as variáveis compartilhadas, mutexes, semáforos e variáveis de condição. Em seguida, cria as threads correspondentes aos selvagens, ao cozinheiro e à atualização da interface, e dá início à simulação. Também é responsável por tratar o encerramento do programa e liberar os recursos utilizados.
+
+- *savage*: Função executada por cada thread de selvagem. Cada selvagem realiza um ciclo contínuo que envolve sair da tribo, tentar servir-se do caldeirão, e, se necessário, acordar o cozinheiro. Utiliza mutexes e variáveis de condição para coordenar o acesso ao recurso compartilhado e evitar problemas de concorrência.
+
+- *cook_thread*: Representa a thread do cozinheiro. Ela permanece em estado de espera até ser acordada por um selvagem quando o caldeirão estiver vazio. Após ser acordado, o cozinheiro reabastece o caldeirão com novas porções e volta ao estado de espera. Sua lógica garante que ele só seja ativado uma vez por reabastecimento.
+
+- *status_printer*: Responsável por atualizar dinamicamente a interface em modo texto. Exibe a posição e as ações dos personagens, bem como a quantidade atual de porções no caldeirão. Garante uma visualização intuitiva e clara da simulação em tempo real.
+
+---
+
+## Tecnologias Utilizadas
+
+O projeto foi desenvolvido em linguagem *C*, utilizando as seguintes bibliotecas padrão:
+
+- pthread.h — Criação e controle de múltiplas threads.
+- semaphore.h — Semáforos POSIX para controle de acesso sincronizado.
+- unistd.h — Funções utilitárias como sleep e usleep.
+- time.h — Manipulação de tempo e geração de delays personalizados.
+
+Todo o desenvolvimento e testes foram realizados em um ambiente *Linux*, aproveitando o suporte robusto a programação concorrente com pthreads e semáforos POSIX.
+
+---
+
+## Destaques do Projeto
+
+- *Visualização animada em ASCII*: Permite acompanhar em tempo real a movimentação dos selvagens, o estado do caldeirão e a atividade do cozinheiro.
+- *Organização do código*: As funções são bem segmentadas e a lógica de sincronização está clara e encapsulada.
+- *Estabilidade na execução*: O projeto foi cuidadosamente testado para evitar condições de corrida, deadlocks e starvation, garantindo um comportamento previsível e correto mesmo sob diferentes cenários de carga.
+
+---
+
+## Instruções de Execução
+
+Para compilar e rodar o projeto, utilize os seguintes comandos no terminal:
+
+```bash
+gcc selvagens.c -o selvagens -lpthread
+./selvagens
